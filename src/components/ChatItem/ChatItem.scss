@@ -22,9 +22,11 @@
   border-radius: 13px;
   background: transparent;
   text-align: left;
+
   &:hover {
     background: $color-hover-background;
   }
+
   .chat-item__avatar {
     width: 48px;
     height: 48px;
@@ -32,17 +34,20 @@
     border-radius: 50%;
     object-fit: cover;
   }
+
   .chat-item__content {
     display: block;
     min-width: 0;
     flex: 1;
   }
+
   .chat-item__heading {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 10px;
   }
+
   .chat-item__name {
     overflow: hidden;
     color: $color-text;
@@ -50,11 +55,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .chat-item__time {
     flex: 0 0 auto;
     color: $color-muted;
     font-size: 11px;
   }
+
   .chat-item__preview {
     display: block;
     min-width: 0;
@@ -65,12 +72,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .chat-item__bottom {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
   }
+
   .chat-item__unread {
     display: grid;
     min-width: 20px;
@@ -84,3 +93,4 @@
     font-weight: 700;
     place-items: center;
   }
+}

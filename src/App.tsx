@@ -4,36 +4,74 @@ import "./App.scss";
 import Auth from "@/pages/Auth/Auth.tsx";
 import Aside from "@/components/Aside/Aside.tsx";
 import ChatPanel from "@/components/ChatPanel/ChatPanel.tsx";
+import type { Credentials, InstanceSettings } from "@/shared/types";
+import { useChats } from "@/modules/chats/useChats";
 
 function App() {
-  let [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeChatId, setActiveChatId] = useState(null);
-  const [chats, setChats] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [instanceSettings, setInstanceSettings] = useState<InstanceSettings | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+
+  const [formError, setFormError] = useState("");
+  const [credentials, setCredentials] = useState<Credentials>({ idInstance: "", apiTokenInstance: "" });
+  const { chats, isLoadingChats, chatListError, clearChats } = useChats(isAuthenticated ? credentials : null);
   const activeChat = chats.find((chat) => chat.id === activeChatId);
-  const signIn = async () => {
+
+  const signIn = (verifiedCredentials: Credentials, settings: InstanceSettings) => {
+    setCredentials(verifiedCredentials);
+    setInstanceSettings(settings);
     setIsAuthenticated(true);
   };
 
-  if (!isAuthenticated) {
-    return <Auth onSignIn={signIn} chats={chats} />;
+  const signOut = () => {
+    sessionStorage.removeItem("greenApiCredentials");
+    setCredentials({ idInstance: "", apiTokenInstance: "" });
+    setFormError("");
+    setInstanceSettings(null);
+    setIsAuthenticated(false);
+    setActiveChatId(null);
+    setIsChatOpen(false);
+    setIsCreatingChat(false);
+    clearChats();
+  };
+
+  const selectChat = (id: string) => {
+    setActiveChatId(id);
+    setIsChatOpen(true);
+  };
+
+  if (!isAuthenticated || !instanceSettings) {
+    return (
+      <Auth
+        onSignIn={signIn}
+        credentials={credentials}
+        formError={formError}
+        setCredentials={setCredentials}
+        setFormError={setFormError}
+      />
+    );
   }
 
   return (
-    <main className="chat-layout">
+    <main className={`chat-layout${isChatOpen ? " chat-layout--chat-open" : ""}`}>
       <Aside
         activeChatId={activeChatId}
+        chats={chats}
         isCreatingChat={isCreatingChat}
-        onSetIsCreatingChat={setIsCreatingChat}
-        onSetActiveChatId={setActiveChatId}
-        onSetIsChatOpen={setIsChatOpen}
+        isLoadingChats={isLoadingChats}
+        chatListError={chatListError}
+        onCreateChat={() => setIsCreatingChat(true)}
+        onCloseCreateChat={() => setIsCreatingChat(false)}
+        onSelectChat={selectChat}
+        onSignOut={signOut}
       />
       <ChatPanel
         activeChatId={activeChatId}
         activeChat={activeChat}
-        onSetIsChatOpen={setIsChatOpen}
-        onSetIsCreatingChat={setIsCreatingChat}
+        onCloseChat={() => setIsChatOpen(false)}
+        onCreateChat={() => setIsCreatingChat(true)}
       />
     </main>
   );

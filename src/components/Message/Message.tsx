@@ -1,8 +1,18 @@
+import "./Message.scss";
 import Button from "@/components/ui/Button/Button.tsx";
+import type { ChatMessage } from "@/shared/types";
 type MessageStatus = "pending" | "sent" | "delivered" | "read" | "error";
 
-function Message({ message, messages, onReply }) {
-  const status: MessageStatus = message.direction === "outgoing" ? message.status : null;
+function Message({
+  message,
+  messages,
+  onReply,
+}: {
+  message: ChatMessage;
+  messages: ChatMessage[];
+  onReply: (message: ChatMessage) => void;
+}) {
+  const status: MessageStatus | undefined = message.direction === "outgoing" ? message.status : undefined;
   const quoted = message.quotedId ? messages.find((item) => item.id === message.quotedId) : null;
   const statusIcons: Record<MessageStatus, string> = {
     pending: "◷",

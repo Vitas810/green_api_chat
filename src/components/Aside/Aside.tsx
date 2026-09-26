@@ -1,28 +1,39 @@
+import "./Aside.scss";
 import Button from "@/components/ui/Button/Button.tsx";
 import Input from "@/components/ui/Input/Input.tsx";
 import { useState } from "react";
 import ChatItem from "@/components/ChatItem/ChatItem.tsx";
-import "./Aside.scss";
+import type { FormEvent } from "react";
+import type { Chat } from "@/shared/types";
 
-const normilizePhone = (phone: string) => phone.replace(/\D/g, "");
-const isValidePhone = (phone: string) => {
-  const length = normilizePhone(phone)?.length;
-
-  return phone?.length >= 11 && length <= 16;
+type AsideProps = {
+  activeChatId: string | null;
+  chats: Chat[];
+  isCreatingChat: boolean;
+  isLoadingChats: boolean;
+  chatListError: string;
+  onCreateChat: () => void;
+  onCloseCreateChat: () => void;
+  onSelectChat: (id: string) => void;
+  onSignOut: () => void;
 };
 
-function Aside({ activeChatId, chats, isCreatingChat, setIsCreatingChat, setActiveChatId, setIsChatOpen }) {
-  const [isLoadingChats, setIsLoadingChats] = useState(false);
-  const [chatListError, setChatListError] = useState("");
-
+function Aside({
+  activeChatId,
+  chats,
+  isCreatingChat,
+  isLoadingChats,
+  chatListError,
+  onCreateChat,
+  onCloseCreateChat,
+  onSelectChat,
+  onSignOut,
+}: AsideProps) {
   const [formError, setFormError] = useState("");
 
-  const createChat = () => {
-    setIsCreatingChat(true);
-  };
-
-  const signOut = () => {
-    setIsCreatingChat(false);
+  const createChat = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onCreateChat();
   };
 
   return (
@@ -32,7 +43,7 @@ function Aside({ activeChatId, chats, isCreatingChat, setIsCreatingChat, setActi
         <Button
           className="chat-list__header-button"
           onClick={() => {
-            setIsCreatingChat(true);
+            onCreateChat();
             setFormError("");
           }}
           aria-label="Создать чат"
@@ -50,10 +61,9 @@ function Aside({ activeChatId, chats, isCreatingChat, setIsCreatingChat, setActi
             <Button
               className="new-chat-form__close"
               onClick={() => {
-                setIsCreatingChat(false);
+                onCloseCreateChat();
                 setFormError("");
               }}
-              disabled={isValidePhone}
               aria-label="Закрыть"
             >
               ×
@@ -86,20 +96,12 @@ function Aside({ activeChatId, chats, isCreatingChat, setIsCreatingChat, setActi
       {chats?.length > 0 && (
         <ul className="chat-list__items">
           {chats.map((chat) => (
-            <ChatItem
-              key={chat.id}
-              chat={chat}
-              active={chat.id === activeChatId}
-              onSelect={(id) => {
-                setActiveChatId(id);
-                setIsChatOpen(true);
-              }}
-            />
+            <ChatItem key={chat.id} chat={chat} active={chat.id === activeChatId} onSelect={onSelectChat} />
           ))}
         </ul>
       )}
 
-      {!isLoadingChats && !chatListError && (
+      {!chats?.length && !isLoadingChats && !chatListError && (
         <div className="chat-list__empty">
           <span className="chat-list__empty-icon" aria-hidden="true">
             ✦
@@ -109,9 +111,15 @@ function Aside({ activeChatId, chats, isCreatingChat, setIsCreatingChat, setActi
         </div>
       )}
 
+      {chatListError && (
+        <p className="chat-list__error" role="alert">
+          {chatListError}
+        </p>
+      )}
+
       <div className="chat-list__footer">
         <span className="chat-list__account">Интерфейс чата</span>
-        <Button className="chat-list__exit" type="button" onClick={signOut}>
+        <Button className="chat-list__exit" type="button" onClick={onSignOut}>
           Выйти
         </Button>
       </div>

@@ -1,7 +1,10 @@
-import './Input.scss'
+import type { InputHTMLAttributes } from "react";
+import "./Input.scss";
 
-function Input({ className = '', ...props }) {
-  return <input className={`input${className ? ` ${className}` : ''}`} {...props} />
+type InputProps = InputHTMLAttributes<HTMLInputElement>;
+
+function Input({ className = "", ...props }: InputProps) {
+  return <input className={`input${className ? ` ${className}` : ""}`} {...props} />;
 }
 
-export default Input
+export default Input;

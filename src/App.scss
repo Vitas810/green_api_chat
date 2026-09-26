@@ -10,8 +10,27 @@
   overflow: hidden;
   background: $color-white;
 
+  > .chat-panel {
+    display: none;
+  }
+
+  &--chat-open {
+    > .chat-list {
+      display: none;
+    }
+
+    > .chat-panel {
+      display: flex;
+    }
+  }
+
   @include min-mq(md) {
     grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+
+    > .chat-list,
+    > .chat-panel {
+      display: flex;
+    }
   }
   @include min-mq(lg) {
     width: min(100%, 1480px);

@@ -89,6 +89,12 @@
     font-size: 14px;
   }
 
+  .chat-list__error {
+    padding: 0 20px;
+    color: $color-error;
+    font-size: 14px;
+  }
+
   .chat-list__footer {
     display: flex;
     min-height: 62px;

@@ -1,28 +1,37 @@
 import "./ChatPanel.scss";
+import "./ChatPanel.scss";
 import Button from "@/components/ui/Button/Button.tsx";
 import avatar from "@/assets/images/avatar.svg";
 import Message from "@/components/Message/Message.tsx";
 import Input from "@/components/ui/Input/Input.tsx";
 import { useState } from "react";
+import type { Chat, ChatMessage } from "@/shared/types";
 
-function ChatPanel({ activeChatId, activeChat, setIsChatOpen, setIsCreatingChat }) {
-  const [replyingTo, setReplyingTo] = useState(null);
+type ChatPanelProps = {
+  activeChatId: string | null;
+  activeChat?: Chat;
+  onCloseChat: () => void;
+  onCreateChat: () => void;
+};
+
+function ChatPanel({ activeChatId, activeChat, onCloseChat, onCreateChat }: ChatPanelProps) {
+  const [replyingTo, setReplyingTo] = useState<(ChatMessage & { chatId: string }) | null>(null);
   const activeReply = replyingTo?.chatId === activeChatId ? replyingTo : null;
   const [draft, setDraft] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [isSending] = useState(false);
 
   const sendMessage = () => {};
 
   return (
     <section className="chat-panel" aria-label="Чаты">
-      {activeChatId && (
+      {activeChatId && activeChat && (
         <>
           <div className="chat-panel__header">
             <Button
               className="chat-panel__back"
               type="button"
               aria-label="Вернуться к списку чатов"
-              onClick={() => setIsChatOpen(false)}
+              onClick={onCloseChat}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m15 18-6-6 6-6" />
@@ -38,7 +47,12 @@ function ChatPanel({ activeChatId, activeChat, setIsChatOpen, setIsCreatingChat 
             {activeChat.messages.length ? (
               <ul className="chat-panel__messages">
                 {activeChat.messages.map((message) => (
-                  <Message key={message.id} message={message} />
+                  <Message
+                    key={message.id}
+                    message={message}
+                    messages={activeChat.messages}
+                    onReply={(item) => setReplyingTo({ ...item, chatId: activeChatId })}
+                  />
                 ))}
               </ul>
             ) : (
@@ -104,7 +118,7 @@ function ChatPanel({ activeChatId, activeChat, setIsChatOpen, setIsCreatingChat 
           </span>
           <h2 className="chat-panel__placeholder-title">Ваши сообщения</h2>
           <p className="chat-panel__placeholder-text">Создайте чат или выберите переписку из списка.</p>
-          <Button type="button" onClick={() => setIsCreatingChat(true)}>
+          <Button type="button" onClick={onCreateChat}>
             Создать чат
           </Button>
         </div>

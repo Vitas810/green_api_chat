@@ -1,7 +1,9 @@
 import Button from "@/components/ui/Button/Button.tsx";
 import avatar from "@/assets/images/avatar.svg";
+import type { Chat } from "@/shared/types";
+import "./ChatItem.scss";
 
-function ChatItem({ chat, active, onSelect }) {
+function ChatItem({ chat, active, onSelect }: { chat: Chat; active: boolean; onSelect: (id: string) => void }) {
   const lastMessage = chat.messages.at(-1);
   const latest =
     lastMessage && (!chat.preview || lastMessage.timestamp >= chat.preview.timestamp) ? lastMessage : chat.preview;
