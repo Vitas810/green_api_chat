@@ -69,6 +69,14 @@
     background-position: 0 0, 18px 18px;
     background-size: 36px 36px;
   }
+  .chat-panel__error {
+    margin: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    color: $color-error;
+    background: $color-white;
+    text-align: center;
+  }
   .chat-panel__messages {
     display: flex;
     flex: 0 0 auto;

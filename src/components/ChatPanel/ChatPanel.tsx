@@ -10,11 +10,12 @@ import type { Chat, ChatMessage } from "@/shared/types";
 type ChatPanelProps = {
   activeChatId: string | null;
   activeChat?: Chat;
+  historyError: string;
   onCloseChat: () => void;
   onCreateChat: () => void;
 };
 
-function ChatPanel({ activeChatId, activeChat, onCloseChat, onCreateChat }: ChatPanelProps) {
+function ChatPanel({ activeChatId, activeChat, historyError, onCloseChat, onCreateChat }: ChatPanelProps) {
   const [replyingTo, setReplyingTo] = useState<(ChatMessage & { chatId: string }) | null>(null);
   const activeReply = replyingTo?.chatId === activeChatId ? replyingTo : null;
   const [draft, setDraft] = useState("");
@@ -44,6 +45,11 @@ function ChatPanel({ activeChatId, activeChat, onCloseChat, onCreateChat }: Chat
           </div>
 
           <div className="chat-panel__body">
+            {historyError && (
+              <p className="chat-panel__error" role="alert">
+                {historyError}
+              </p>
+            )}
             {activeChat.messages.length ? (
               <ul className="chat-panel__messages">
                 {activeChat.messages.map((message) => (
@@ -56,13 +62,15 @@ function ChatPanel({ activeChatId, activeChat, onCloseChat, onCreateChat }: Chat
                 ))}
               </ul>
             ) : (
-              <div className="chat-panel__empty">
-                <span className="chat-panel__empty-icon" aria-hidden="true">
-                  ✦
-                </span>
-                <p className="chat-panel__empty-title">Начните переписку</p>
-                <p className="chat-panel__empty-text">Напишите первое сообщение получателю.</p>
-              </div>
+              !historyError && (
+                <div className="chat-panel__empty">
+                  <span className="chat-panel__empty-icon" aria-hidden="true">
+                    ✦
+                  </span>
+                  <p className="chat-panel__empty-title">Начните переписку</p>
+                  <p className="chat-panel__empty-text">Напишите первое сообщение получателю.</p>
+                </div>
+              )
             )}
           </div>
 

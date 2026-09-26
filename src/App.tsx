@@ -16,7 +16,10 @@ function App() {
 
   const [formError, setFormError] = useState("");
   const [credentials, setCredentials] = useState<Credentials>({ idInstance: "", apiTokenInstance: "" });
-  const { chats, isLoadingChats, chatListError, clearChats } = useChats(isAuthenticated ? credentials : null);
+  const { chats, isLoadingChats, chatListError, historyError, clearChats } = useChats(
+    isAuthenticated ? credentials : null,
+    isChatOpen ? activeChatId : null,
+  );
   const activeChat = chats.find((chat) => chat.id === activeChatId);
 
   const signIn = (verifiedCredentials: Credentials, settings: InstanceSettings) => {
@@ -70,6 +73,7 @@ function App() {
       <ChatPanel
         activeChatId={activeChatId}
         activeChat={activeChat}
+        historyError={historyError}
         onCloseChat={() => setIsChatOpen(false)}
         onCreateChat={() => setIsCreatingChat(true)}
       />

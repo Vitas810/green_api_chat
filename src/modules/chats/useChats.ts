@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getChats } from "@/api/chats";
-import type { Chat, Credentials } from "@/shared/types";
+import { getChatMessages, getChats } from "@/api/chats";
+import type { Chat, ChatMessage, Credentials } from "@/shared/types";
 import { getAvatarCache, getPreviewCache } from "@/modules/chats/cache";
 import { createChatFromApi, updateChatList } from "@/modules/chats/chatList";
 import type { LoadedChat } from "@/modules/chats/chatList";
@@ -13,10 +13,11 @@ function getRetryDelay(retryCount: number, retryAfter: string | null) {
   return Math.max(retryDelay, Number.isFinite(serverDelay) ? serverDelay * 1000 : 0);
 }
 
-export function useChats(credentials: Credentials | null) {
+export function useChats(credentials: Credentials | null, activeChatId: string | null) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   const [chatListError, setChatListError] = useState("");
+  const [historyError, setHistoryError] = useState<{ chatId: string; message: string } | null>(null);
 
   const clearChats = () => {
     setChats([]);
@@ -72,5 +73,47 @@ export function useChats(credentials: Credentials | null) {
     };
   }, [credentials]);
 
-  return { chats, isLoadingChats, chatListError, clearChats };
+  useEffect(() => {
+    if (!credentials || !activeChatId) return;
+
+    const controller = new AbortController();
+    const loadHistory = async () => {
+      try {
+        const history = await getChatMessages(credentials, activeChatId, controller.signal, 100);
+        if (controller.signal.aborted) return;
+        if (history === "stop") {
+          setHistoryError({ chatId: activeChatId, message: "GREEN-API ограничил загрузку сообщений. Попробуйте позже." });
+          return;
+        }
+
+        const messages: ChatMessage[] = history
+          .filter((item) => item.typeMessage === "textMessage" || item.typeMessage === "extendedTextMessage")
+          .map((item) => ({
+            id: item.idMessage,
+            direction: item.type,
+            text: item.textMessage || item.extendedTextMessage?.text || "",
+            timestamp: Number(item.timestamp),
+            time: new Date(Number(item.timestamp) * 1000).toLocaleTimeString("ru", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          }))
+          .reverse();
+
+        setChats((current) => current.map((chat) =>
+          chat.chatId === activeChatId ? { ...chat, messages } : chat,
+        ));
+        setHistoryError(null);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setHistoryError({ chatId: activeChatId, message: error instanceof Error ? error.message : "Не удалось загрузить сообщения." });
+        }
+      }
+    };
+
+    void loadHistory();
+    return () => controller.abort();
+  }, [credentials, activeChatId]);
+
+  return { chats, isLoadingChats, chatListError, historyError: historyError?.chatId === activeChatId ? historyError.message : "", clearChats };
 }

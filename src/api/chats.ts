@@ -34,6 +34,7 @@ export async function getAvatar(credentials: Credentials, chatId: string, signal
 
 export type ApiMessage = {
   idMessage: string;
+  type: "incoming" | "outgoing";
   typeMessage: string;
   textMessage?: string;
   extendedTextMessage?: { text?: string };
@@ -44,16 +45,17 @@ export async function getChatMessages(
   credentials: Credentials,
   chatId: string,
   signal: AbortSignal,
+  count = 10,
 ): Promise<ApiMessage[] | "stop"> {
   const response = await fetch(instanceUrl(credentials, "getChatHistory"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chatId, count: 10 }),
+    body: JSON.stringify({ chatId, count }),
     signal,
   });
 
   if (response.status === 466 || response.status === 429) return "stop";
-  if (!response.ok) return [];
+  if (!response.ok) throw new Error(`Не удалось загрузить сообщения: ошибка ${response.status}.`);
 
   const messages = (await response.json()) as ApiMessage[];
   return Array.isArray(messages) ? messages : [];
