@@ -1,0 +1,125 @@
+@use '@styles/variables' as *;
+
+.chat-list {
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  border-right: 1px solid $color-border;
+  background: $color-white;
+
+  .chat-list__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 24px 20px 18px;
+  }
+
+  .chat-list__header-title {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .chat-list__header-button {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 50%;
+    background: $color-primary;
+
+    svg {
+      width: 21px;
+      height: 21px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-width: 2;
+    }
+  }
+
+  .chat-list__items {
+    min-height: 0;
+    flex: 1;
+    margin: 0;
+    padding: 0 8px;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .chat-list__item {
+    margin: 2px 0;
+  }
+
+  .chat-list__empty {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+  }
+
+  .chat-list__empty-icon {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 15px;
+    border-radius: 22px;
+    color: $color-primary;
+    background: $color-primary-light;
+    font-size: 35px;
+    place-items: center;
+  }
+
+  .chat-list__empty-title {
+    margin: 0 0 5px;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .chat-list__empty-text {
+    max-width: 220px;
+    margin: 0;
+    color: $color-muted;
+    font-size: 14px;
+  }
+
+  .chat-list__footer {
+    display: flex;
+    min-height: 62px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 20px;
+    border-top: 1px solid $color-border;
+  }
+
+  .chat-list__account {
+    min-width: 0;
+    overflow: hidden;
+    color: $color-muted;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-list__account--error {
+    color: $color-error;
+  }
+
+  .chat-list__exit {
+    padding: 8px 0 8px 8px;
+    color: $color-primary;
+    background: transparent;
+    font-size: 13px;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+}

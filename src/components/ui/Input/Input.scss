@@ -1,0 +1,12 @@
+@use '@styles/variables' as *;
+.input {
+  min-width: 0;
+  border: 1px solid $color-border;
+  color: $color-text;
+  background: $color-white;
+
+  &::placeholder {
+    color: $color-muted;
+  }
+}
+

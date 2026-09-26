@@ -1,0 +1,29 @@
+@use '@styles/variables' as *;
+
+.button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  color: $color-white;
+  background: $color-primary;
+  font-weight: 700;
+  transition: background 180ms ease;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      background: $color-primary;
+    }
+  }
+}
+
