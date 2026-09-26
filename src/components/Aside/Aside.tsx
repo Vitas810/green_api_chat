@@ -5,6 +5,7 @@ import { useState } from "react";
 import ChatItem from "@/components/ChatItem/ChatItem.tsx";
 import type { FormEvent } from "react";
 import type { Chat } from "@/shared/types";
+import { formatPhone, getChatNumber } from "@/shared/phone";
 
 type AsideProps = {
   activeChatId: string | null;
@@ -13,6 +14,7 @@ type AsideProps = {
   isLoadingChats: boolean;
   chatListError: string;
   onCreateChat: () => void;
+  onSubmitNewChat: (number: string) => void;
   onCloseCreateChat: () => void;
   onSelectChat: (id: string) => void;
   onSignOut: () => void;
@@ -25,15 +27,24 @@ function Aside({
   isLoadingChats,
   chatListError,
   onCreateChat,
+  onSubmitNewChat,
   onCloseCreateChat,
   onSelectChat,
   onSignOut,
 }: AsideProps) {
   const [formError, setFormError] = useState("");
+  const [phone, setPhone] = useState("");
 
   const createChat = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onCreateChat();
+    const number = getChatNumber(phone);
+    if (!number) {
+      setFormError("Введите номер с кодом страны: от 11 до 16 цифр.");
+      return;
+    }
+    setFormError("");
+    setPhone("");
+    onSubmitNewChat(number);
   };
 
   return (
@@ -55,9 +66,9 @@ function Aside({
       </div>
 
       {isCreatingChat && (
-        <form className="new-chat-from" onSubmit={createChat}>
+        <form className="new-chat-form" onSubmit={createChat}>
           <div className="new-chat-form__heading">
-            <div className="new-chat-from__title">Новый чат</div>
+            <div className="new-chat-form__title">Новый чат</div>
             <Button
               className="new-chat-form__close"
               onClick={() => {
@@ -78,7 +89,9 @@ function Aside({
             id="phoneInput"
             type="tel"
             inputMode="tel"
-            placeholder="7 xxx xxx-xx-xx"
+            placeholder="+7 999 999-99-99"
+            value={phone}
+            onChange={(event) => setPhone(formatPhone(event.target.value))}
           />
 
           {formError && (

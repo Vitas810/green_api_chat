@@ -17,7 +17,11 @@ export async function getChats(credentials: Credentials, signal: AbortSignal): P
   return { status: "ok", chats: (await response.json()) as ApiChat[] };
 }
 
-export async function getAvatar(credentials: Credentials, chatId: string, signal: AbortSignal): Promise<string | null | "stop"> {
+export async function getAvatar(
+  credentials: Credentials,
+  chatId: string,
+  signal: AbortSignal,
+): Promise<string | null | "stop"> {
   const response = await fetch(instanceUrl(credentials, "getAvatar"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -39,6 +43,7 @@ export type ApiMessage = {
   textMessage?: string;
   extendedTextMessage?: { text?: string };
   timestamp: number;
+  statusMessage?: string;
 };
 
 export async function getChatMessages(
@@ -59,4 +64,71 @@ export async function getChatMessages(
 
   const messages = (await response.json()) as ApiMessage[];
   return Array.isArray(messages) ? messages : [];
+}
+
+export async function sendText(credentials: Credentials, chatId: string, message: string, quotedMessageId?: string) {
+  const response = await fetch(instanceUrl(credentials, "sendMessage"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatId, message, ...(quotedMessageId ? { quotedMessageId } : {}) }),
+  });
+
+  if (!response.ok) throw new Error(`Не удалось отправить сообщение: ошибка ${response.status}.`);
+
+  const result = (await response.json()) as { idMessage: string };
+
+  if (!result.idMessage) throw new Error("GREEN-API не вернул идентификатор сообщения.");
+
+  return result.idMessage;
+}
+
+export type Notification = {
+  receiptId: number;
+  body: {
+    typeWebhook: string;
+    idMessage?: string;
+    status?: string;
+    timestamp?: number;
+    senderData?: { chatId?: string; chatName?: string };
+    messageData?: {
+      typeMessage?: string;
+      textMessageData?: { textMessage?: string };
+      extendedTextMessageData?: { text?: string };
+    };
+  };
+};
+
+export async function receiveNotification(
+  credentials: Credentials,
+  signal: AbortSignal,
+): Promise<Notification | null | "stop"> {
+  const response = await fetch(`${instanceUrl(credentials, "receiveNotification")}?receiveTimeout=10`, { signal });
+
+  if (response.status === 466) return "stop";
+  if (!response.ok) throw new Error(`Ошибка получения сообщений: ${response.status}.`);
+  const text = await response.text();
+
+  return text ? (JSON.parse(text) as Notification) : null;
+}
+
+export async function deleteNotification(credentials: Credentials, receiptId: number, signal: AbortSignal) {
+  const response = await fetch(`${instanceUrl(credentials, "deleteNotification")}/${receiptId}`, {
+    method: "DELETE",
+    signal,
+  });
+
+  if (!response.ok) throw new Error(`Ошибка подтверждения сообщения: ${response.status}.`);
+}
+
+export async function readChat(credentials: Credentials, chatId: string, signal: AbortSignal): Promise<boolean> {
+  const response = await fetch(instanceUrl(credentials, "readChat"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatId }),
+    signal,
+  });
+
+  if (!response.ok) return false;
+  const result = (await response.json()) as { setRead?: boolean };
+  return result.setRead === true;
 }

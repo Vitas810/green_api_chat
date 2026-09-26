@@ -16,7 +16,7 @@ function App() {
 
   const [formError, setFormError] = useState("");
   const [credentials, setCredentials] = useState<Credentials>({ idInstance: "", apiTokenInstance: "" });
-  const { chats, isLoadingChats, chatListError, historyError, clearChats } = useChats(
+  const { chats, isLoadingChats, chatListError, historyError, addChat, sendMessage, clearChats } = useChats(
     isAuthenticated ? credentials : null,
     isChatOpen ? activeChatId : null,
   );
@@ -45,6 +45,14 @@ function App() {
     setIsChatOpen(true);
   };
 
+  const createChat = (number: string) => {
+    const chatId = `${number}@c.us`;
+    const existing = chats.find((chat) => chat.chatId === chatId || chat.aliasChatId === chatId);
+    if (!existing) addChat(chatId, number);
+    selectChat(existing?.id ?? chatId);
+    setIsCreatingChat(false);
+  };
+
   if (!isAuthenticated || !instanceSettings) {
     return (
       <Auth
@@ -66,14 +74,17 @@ function App() {
         isLoadingChats={isLoadingChats}
         chatListError={chatListError}
         onCreateChat={() => setIsCreatingChat(true)}
+        onSubmitNewChat={createChat}
         onCloseCreateChat={() => setIsCreatingChat(false)}
         onSelectChat={selectChat}
         onSignOut={signOut}
       />
       <ChatPanel
         activeChatId={activeChatId}
+        isChatOpen={isChatOpen}
         activeChat={activeChat}
         historyError={historyError}
+        onSendMessage={sendMessage}
         onCloseChat={() => setIsChatOpen(false)}
         onCreateChat={() => setIsCreatingChat(true)}
       />

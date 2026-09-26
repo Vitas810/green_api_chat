@@ -1,27 +1,56 @@
 import "./ChatPanel.scss";
-import "./ChatPanel.scss";
 import Button from "@/components/ui/Button/Button.tsx";
 import avatar from "@/assets/images/avatar.svg";
 import Message from "@/components/Message/Message.tsx";
 import Input from "@/components/ui/Input/Input.tsx";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import type { Chat, ChatMessage } from "@/shared/types";
 
 type ChatPanelProps = {
   activeChatId: string | null;
+  isChatOpen: boolean;
   activeChat?: Chat;
   historyError: string;
+  onSendMessage: (chatId: string, text: string, quotedMessageId?: string) => Promise<void>;
   onCloseChat: () => void;
   onCreateChat: () => void;
 };
 
-function ChatPanel({ activeChatId, activeChat, historyError, onCloseChat, onCreateChat }: ChatPanelProps) {
+function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendMessage, onCloseChat, onCreateChat }: ChatPanelProps) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const lastMessageId = activeChat?.messages.at(-1)?.id;
+
+  useLayoutEffect(() => {
+    if (isChatOpen && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [isChatOpen, activeChatId, lastMessageId]);
+
   const [replyingTo, setReplyingTo] = useState<(ChatMessage & { chatId: string }) | null>(null);
   const activeReply = replyingTo?.chatId === activeChatId ? replyingTo : null;
   const [draft, setDraft] = useState("");
-  const [isSending] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<{ chatId: string; message: string } | null>(null);
 
-  const sendMessage = () => {};
+  const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const text = draft.trim();
+    if (!activeChat?.chatId || !text || isSending) return;
+
+    setIsSending(true);
+    setSendError(null);
+    try {
+      await onSendMessage(activeChat.chatId, text, activeReply?.id);
+      setDraft("");
+      setReplyingTo(null);
+    } catch (error) {
+      setSendError({
+        chatId: activeChat.chatId,
+        message: error instanceof Error ? error.message : "Не удалось отправить сообщение.",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <section className="chat-panel" aria-label="Чаты">
@@ -44,7 +73,7 @@ function ChatPanel({ activeChatId, activeChat, historyError, onCloseChat, onCrea
             </div>
           </div>
 
-          <div className="chat-panel__body">
+          <div className="chat-panel__body" ref={bodyRef}>
             {historyError && (
               <p className="chat-panel__error" role="alert">
                 {historyError}
@@ -75,6 +104,9 @@ function ChatPanel({ activeChatId, activeChat, historyError, onCloseChat, onCrea
           </div>
 
           <form className="message-composer" onSubmit={sendMessage}>
+            {sendError?.chatId === activeChat.chatId && (
+              <p className="message-composer__error" role="alert">{sendError?.message}</p>
+            )}
             {activeReply && (
               <div className="message-composer__reply">
                 <div className="message-composer__reply-content">
