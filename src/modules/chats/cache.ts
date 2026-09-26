@@ -19,3 +19,15 @@ export function getAvatarCache(idInstance: string) {
 export function getPreviewCache(idInstance: string) {
   return readCache<CachedPreview>(`greenApiPreviewCache:${idInstance}`);
 }
+
+export function saveAvatarToCache(idInstance: string, chatId: string, url: string) {
+  const key = `greenApiAvatarCache:${idInstance}`;
+  const cache = getAvatarCache(idInstance);
+  sessionStorage.setItem(key, JSON.stringify({ ...cache, [chatId]: { url, savedAt: Date.now() } }));
+}
+
+export function savePreviewToCache(idInstance: string, chatId: string, preview: ChatMessage) {
+  const key = `greenApiPreviewCache:${idInstance}`;
+  const cache = getPreviewCache(idInstance);
+  sessionStorage.setItem(key, JSON.stringify({ ...cache, [chatId]: { preview, savedAt: Date.now() } }));
+}

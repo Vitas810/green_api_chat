@@ -4,6 +4,8 @@ import type { Chat, Credentials } from "@/shared/types";
 import { getAvatarCache, getPreviewCache } from "@/modules/chats/cache";
 import { createChatFromApi, updateChatList } from "@/modules/chats/chatList";
 import type { LoadedChat } from "@/modules/chats/chatList";
+import { loadAvatars } from "@/modules/chats/loadAvatars.ts";
+import { loadPreviews } from "@/modules/chats/loadPreviews";
 
 function getRetryDelay(retryCount: number, retryAfter: string | null) {
   const retryDelay = Math.min(60000 * 2 ** Math.min(retryCount - 1, 3), 300000);
@@ -53,6 +55,8 @@ export function useChats(credentials: Credentials | null) {
           if (chat) fetchedChats.push(chat);
         }
         setChats((currentChats) => updateChatList(currentChats, fetchedChats));
+        loadAvatars(fetchedChats, credentials, controller.signal, setChats);
+        loadPreviews(fetchedChats, credentials, controller.signal, setChats);
       } catch (error) {
         if (controller.signal.aborted) return;
         setChatListError(error instanceof Error ? error.message : "Не удалось загрузить чаты.");
