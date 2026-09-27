@@ -114,11 +114,7 @@
     padding-right: 0;
   }
 
-  .message__status--failed,
-  .message__status--suspended,
-  .message__status--yellowCard,
-  .message__status--noAccount,
-  .message__status--notInGroup {
+  .message__status--error {
     color: $color-error;
     letter-spacing: 0;
     padding-right: 0;

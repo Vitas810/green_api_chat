@@ -1,39 +1,39 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import "./App.scss";
 import Auth from "@/pages/Auth/Auth.tsx";
 import Aside from "@/components/Aside/Aside.tsx";
 import ChatPanel from "@/components/ChatPanel/ChatPanel.tsx";
-import type { Credentials, InstanceSettings } from "@/shared/types";
+import type { ApiAccount, ConnectionId, Credentials } from "@/shared/types";
 import { useChats } from "@/modules/chats/useChats";
+import { resolveChatId } from "@/api/service";
+import { connections } from "@/api/connections";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [instanceSettings, setInstanceSettings] = useState<InstanceSettings | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const [formError, setFormError] = useState("");
   const [credentials, setCredentials] = useState<Credentials>({ idInstance: "", apiTokenInstance: "" });
-  const { chats, isLoadingChats, chatListError, historyError, addChat, sendMessage, clearChats } = useChats(
-    isAuthenticated ? credentials : null,
-    isChatOpen ? activeChatId : null,
-  );
+  const [connectionId, setConnectionId] = useState<ConnectionId>("max");
+  const [apiAccount, setApiAccount] = useState<ApiAccount | null>(null);
+  const newChatController = useRef<AbortController | null>(null);
+  const { chats, isLoadingChats, chatListError, notificationError, historyError, addChat, sendMessage, clearChats } =
+    useChats(apiAccount, isChatOpen ? activeChatId : null);
   const activeChat = chats.find((chat) => chat.id === activeChatId);
 
-  const signIn = (verifiedCredentials: Credentials, settings: InstanceSettings) => {
-    setCredentials(verifiedCredentials);
-    setInstanceSettings(settings);
-    setIsAuthenticated(true);
+  const signIn = (verifiedAccount: ApiAccount) => {
+    setApiAccount(verifiedAccount);
   };
 
   const signOut = () => {
+    newChatController.current?.abort();
+    newChatController.current = null;
     sessionStorage.removeItem("greenApiCredentials");
     setCredentials({ idInstance: "", apiTokenInstance: "" });
+    setApiAccount(null);
     setFormError("");
-    setInstanceSettings(null);
-    setIsAuthenticated(false);
     setActiveChatId(null);
     setIsChatOpen(false);
     setIsCreatingChat(false);
@@ -45,19 +45,39 @@ function App() {
     setIsChatOpen(true);
   };
 
-  const createChat = (number: string) => {
-    const chatId = `${number}@c.us`;
+  const createChat = async (number: string) => {
+    if (!apiAccount) return;
+    const controller = new AbortController();
+    newChatController.current = controller;
+    let chatId: string;
+
+    try {
+      chatId = await resolveChatId(apiAccount, number, controller.signal);
+    } finally {
+      if (newChatController.current === controller) newChatController.current = null;
+    }
+
+    if (controller.signal.aborted) return;
+
     const existing = chats.find((chat) => chat.chatId === chatId || chat.aliasChatId === chatId);
     if (!existing) addChat(chatId, number);
     selectChat(existing?.id ?? chatId);
     setIsCreatingChat(false);
   };
 
-  if (!isAuthenticated || !instanceSettings) {
+  const closeCreateChat = () => {
+    newChatController.current?.abort();
+    newChatController.current = null;
+    setIsCreatingChat(false);
+  };
+
+  if (!apiAccount) {
     return (
       <Auth
         onSignIn={signIn}
         credentials={credentials}
+        connectionId={connectionId}
+        setConnectionId={setConnectionId}
         formError={formError}
         setCredentials={setCredentials}
         setFormError={setFormError}
@@ -73,9 +93,10 @@ function App() {
         isCreatingChat={isCreatingChat}
         isLoadingChats={isLoadingChats}
         chatListError={chatListError}
+        notificationError={notificationError}
         onCreateChat={() => setIsCreatingChat(true)}
         onSubmitNewChat={createChat}
-        onCloseCreateChat={() => setIsCreatingChat(false)}
+        onCloseCreateChat={closeCreateChat}
         onSelectChat={selectChat}
         onSignOut={signOut}
       />
@@ -85,6 +106,7 @@ function App() {
         activeChat={activeChat}
         historyError={historyError}
         onSendMessage={sendMessage}
+        maxTextLength={connections[apiAccount.connectionId].maxTextLength}
         onCloseChat={() => setIsChatOpen(false)}
         onCreateChat={() => setIsCreatingChat(true)}
       />

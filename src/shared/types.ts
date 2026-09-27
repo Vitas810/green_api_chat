@@ -26,11 +26,16 @@ export type Credentials = {
   apiTokenInstance: string;
 };
 
-export type InstanceSettings = Record<string, unknown>;
+export type ConnectionId = "max" | "whatsapp";
+
+export type ApiAccount = {
+  connectionId: ConnectionId;
+  credentials: Credentials;
+};
 
 export type ApiChat = {
-  id?: string;
-  newChatId?: string;
-  name?: string;
-  unreadCount?: number;
+  chatId: string;
+  aliasChatId: string | null;
+  name: string;
+  unreadCount: number;
 };

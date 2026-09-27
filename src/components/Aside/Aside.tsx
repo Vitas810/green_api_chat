@@ -1,6 +1,7 @@
 import "./Aside.scss";
 import Button from "@/components/ui/Button/Button.tsx";
 import Input from "@/components/ui/Input/Input.tsx";
+import Spinner from "@/components/ui/Spinner/Spinner.tsx";
 import { useState } from "react";
 import ChatItem from "@/components/ChatItem/ChatItem.tsx";
 import type { FormEvent } from "react";
@@ -13,8 +14,9 @@ type AsideProps = {
   isCreatingChat: boolean;
   isLoadingChats: boolean;
   chatListError: string;
+  notificationError: string;
   onCreateChat: () => void;
-  onSubmitNewChat: (number: string) => void;
+  onSubmitNewChat: (number: string) => Promise<void>;
   onCloseCreateChat: () => void;
   onSelectChat: (id: string) => void;
   onSignOut: () => void;
@@ -26,6 +28,7 @@ function Aside({
   isCreatingChat,
   isLoadingChats,
   chatListError,
+  notificationError,
   onCreateChat,
   onSubmitNewChat,
   onCloseCreateChat,
@@ -34,8 +37,9 @@ function Aside({
 }: AsideProps) {
   const [formError, setFormError] = useState("");
   const [phone, setPhone] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
-  const createChat = (event: FormEvent<HTMLFormElement>) => {
+  const createChat = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const number = getChatNumber(phone);
     if (!number) {
@@ -43,8 +47,16 @@ function Aside({
       return;
     }
     setFormError("");
-    setPhone("");
-    onSubmitNewChat(number);
+    setIsCreating(true);
+
+    try {
+      await onSubmitNewChat(number);
+      setPhone("");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Не удалось создать чат.");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -100,8 +112,8 @@ function Aside({
             </div>
           )}
 
-          <Button type="submit" className="new-chat-form__submit">
-            Создать чат
+          <Button type="submit" className="new-chat-form__submit" disabled={isCreating}>
+            {isCreating ? <Spinner /> : "Создать чат"}
           </Button>
         </form>
       )}
@@ -127,6 +139,12 @@ function Aside({
       {chatListError && (
         <p className="chat-list__error" role="alert">
           {chatListError}
+        </p>
+      )}
+
+      {notificationError && (
+        <p className="chat-list__error" role="alert">
+          {notificationError}
         </p>
       )}
 

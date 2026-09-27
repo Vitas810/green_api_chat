@@ -12,12 +12,13 @@ type ChatPanelProps = {
   isChatOpen: boolean;
   activeChat?: Chat;
   historyError: string;
+  maxTextLength: number;
   onSendMessage: (chatId: string, text: string, quotedMessageId?: string) => Promise<void>;
   onCloseChat: () => void;
   onCreateChat: () => void;
 };
 
-function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendMessage, onCloseChat, onCreateChat }: ChatPanelProps) {
+function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, maxTextLength, onSendMessage, onCloseChat, onCreateChat }: ChatPanelProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const lastMessageId = activeChat?.messages.at(-1)?.id;
 
@@ -25,30 +26,32 @@ function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendM
     if (isChatOpen && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [isChatOpen, activeChatId, lastMessageId]);
 
-  const [replyingTo, setReplyingTo] = useState<(ChatMessage & { chatId: string }) | null>(null);
-  const activeReply = replyingTo?.chatId === activeChatId ? replyingTo : null;
-  const [draft, setDraft] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [sendError, setSendError] = useState<{ chatId: string; message: string } | null>(null);
+  const [replies, setReplies] = useState<Record<string, ChatMessage | null>>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [sending, setSending] = useState<Record<string, boolean>>({});
+  const [sendErrors, setSendErrors] = useState<Record<string, string>>({});
+  const chatKey = activeChatId ?? "";
+  const activeReply = replies[chatKey] ?? null;
+  const draft = drafts[chatKey] ?? "";
+  const isSending = Boolean(sending[chatKey]);
 
   const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const text = draft.trim();
     if (!activeChat?.chatId || !text || isSending) return;
 
-    setIsSending(true);
-    setSendError(null);
+    const targetKey = chatKey;
+    const targetChatId = activeChat.chatId;
+    setSending((current) => ({ ...current, [targetKey]: true }));
+    setSendErrors((current) => ({ ...current, [targetKey]: "" }));
     try {
-      await onSendMessage(activeChat.chatId, text, activeReply?.id);
-      setDraft("");
-      setReplyingTo(null);
+      await onSendMessage(targetChatId, text, activeReply?.id);
+      setDrafts((current) => ({ ...current, [targetKey]: "" }));
+      setReplies((current) => ({ ...current, [targetKey]: null }));
     } catch (error) {
-      setSendError({
-        chatId: activeChat.chatId,
-        message: error instanceof Error ? error.message : "Не удалось отправить сообщение.",
-      });
+      setSendErrors((current) => ({ ...current, [targetKey]: error instanceof Error ? error.message : "Не удалось отправить сообщение." }));
     } finally {
-      setIsSending(false);
+      setSending((current) => ({ ...current, [targetKey]: false }));
     }
   };
 
@@ -86,7 +89,7 @@ function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendM
                     key={message.id}
                     message={message}
                     messages={activeChat.messages}
-                    onReply={(item) => setReplyingTo({ ...item, chatId: activeChatId })}
+                    onReply={(item) => setReplies((current) => ({ ...current, [chatKey]: item }))}
                   />
                 ))}
               </ul>
@@ -104,8 +107,8 @@ function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendM
           </div>
 
           <form className="message-composer" onSubmit={sendMessage}>
-            {sendError?.chatId === activeChat.chatId && (
-              <p className="message-composer__error" role="alert">{sendError?.message}</p>
+            {sendErrors[chatKey] && (
+              <p className="message-composer__error" role="alert">{sendErrors[chatKey]}</p>
             )}
             {activeReply && (
               <div className="message-composer__reply">
@@ -116,7 +119,7 @@ function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendM
                 <Button
                   className="message-composer__reply-cancel"
                   type="button"
-                  onClick={() => setReplyingTo(null)}
+                  onClick={() => setReplies((current) => ({ ...current, [chatKey]: null }))}
                   aria-label="Отменить ответ"
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -132,9 +135,9 @@ function ChatPanel({ activeChatId, isChatOpen, activeChat, historyError, onSendM
               className="message-composer__input"
               id="message-text"
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(event) => setDrafts((current) => ({ ...current, [chatKey]: event.target.value }))}
               placeholder="Напишите сообщение..."
-              maxLength={20000}
+              maxLength={maxTextLength}
               disabled={isSending}
             />
             <Button

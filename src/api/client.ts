@@ -1,7 +1,7 @@
-import type { Credentials } from "@/shared/types";
+import { connections } from "@/api/connections";
+import type { ApiAccount } from "@/shared/types";
 
-const apiUrl = "https://7107.api.greenapi.com";
-
-export function instanceUrl({ idInstance, apiTokenInstance }: Credentials, method: string) {
-  return `${apiUrl}/waInstance${idInstance}/${method}/${apiTokenInstance}`;
+export function instanceUrl({ connectionId, credentials }: ApiAccount, method: string) {
+  const { idInstance, apiTokenInstance } = credentials;
+  return `${connections[connectionId].apiUrl}/waInstance${idInstance}/${method}/${apiTokenInstance}`;
 }

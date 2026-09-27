@@ -1,17 +1,17 @@
 import { getChatMessages } from "@/api/chats";
 import { getPreviewCache, savePreviewToCache } from "@/modules/chats/cache";
-import type { LoadedChat } from "@/modules/chats/chatList";
 import { toChatMessage } from "@/modules/chats/message";
+import type { LoadedChat } from "@/modules/chats/chatList";
 import type { Dispatch, SetStateAction } from "react";
-import type { Chat, ChatMessage, Credentials } from "@/shared/types";
+import type { Chat, ApiAccount } from "@/shared/types";
 
 export async function loadPreviews(
   chats: LoadedChat[],
-  credentials: Credentials,
+  apiAccount: ApiAccount,
   signal: AbortSignal,
   setChats: Dispatch<SetStateAction<Chat[]>>,
 ) {
-  const cache = getPreviewCache(credentials.idInstance);
+  const cache = getPreviewCache(apiAccount);
 
   for (const chat of chats) {
     if (signal.aborted) return;
@@ -19,19 +19,21 @@ export async function loadPreviews(
     if (cached?.preview && Date.now() - (cached.savedAt ?? 0) < 60 * 60 * 1000) continue;
 
     try {
-      const history = await getChatMessages(credentials, chat.chatId, signal);
+      const history = await getChatMessages(apiAccount, chat.chatId, signal);
       if (history === "stop" || signal.aborted) return;
 
-      const preview = history
-        .map(toChatMessage)
-        .filter((item): item is ChatMessage => item !== null)
+      const preview = history.map(toChatMessage).filter((message) => message !== null)
         .sort((a, b) => b.timestamp - a.timestamp)[0];
 
       if (preview) {
-        setChats((current) => current.map((item) => (item.chatId === chat.chatId ? { ...item, preview } : item)));
+        setChats((current) => current.map((item) => {
+          if (item.chatId !== chat.chatId) return item;
+          if (item.preview && item.preview.timestamp >= preview.timestamp) return item;
+          return { ...item, preview };
+        }));
 
         try {
-          savePreviewToCache(credentials.idInstance, chat.chatId, preview);
+          savePreviewToCache(apiAccount, chat.chatId, preview);
         } catch {}
       }
     } catch {

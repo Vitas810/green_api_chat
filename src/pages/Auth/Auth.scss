@@ -54,6 +54,60 @@
     gap: 16px;
   }
 
+  .auth-form__service {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .auth-form__service-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .auth-form__service input {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    appearance: none;
+    border: 1px solid $color-border;
+    border-radius: 3px;
+    background: $color-white;
+    cursor: inherit;
+    place-items: center;
+
+    &:checked {
+      border-color: $color-primary;
+      background: $color-primary;
+    }
+
+    &:checked::after {
+      width: 8px;
+      height: 5px;
+      border-bottom: 2px solid $color-white;
+      border-left: 2px solid $color-white;
+      content: '';
+      transform: translateY(-1px) rotate(-45deg);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
   .auth-form__field {
     display: grid;
     gap: 7px;

@@ -1,10 +1,11 @@
 import { instanceUrl } from "@/api/client";
-import type { ApiChat, Credentials } from "@/shared/types";
+import type { ApiAccount } from "@/shared/types";
 
-type ChatsResult = { status: "ok"; chats: ApiChat[] } | { status: "rate-limited"; retryAfter: string | null };
+export type RawChat = { id?: string; newChatId?: string; chatId?: string; name?: string; unreadCount?: number };
+type ChatsResult = { status: "ok"; chats: RawChat[] } | { status: "rate-limited"; retryAfter: string | null };
 
-export async function getChats(credentials: Credentials, signal: AbortSignal): Promise<ChatsResult> {
-  const response = await fetch(instanceUrl(credentials, "getChats"), { signal });
+export async function getChats(apiAccount: ApiAccount, signal: AbortSignal): Promise<ChatsResult> {
+  const response = await fetch(instanceUrl(apiAccount, "getChats"), { signal });
 
   if (response.status === 429) {
     return { status: "rate-limited", retryAfter: response.headers.get("Retry-After") };
@@ -14,15 +15,15 @@ export async function getChats(credentials: Credentials, signal: AbortSignal): P
     throw new Error(`Не удалось загрузить чаты: ошибка ${response.status}.`);
   }
 
-  return { status: "ok", chats: (await response.json()) as ApiChat[] };
+  return { status: "ok", chats: (await response.json()) as RawChat[] };
 }
 
 export async function getAvatar(
-  credentials: Credentials,
+  apiAccount: ApiAccount,
   chatId: string,
   signal: AbortSignal,
 ): Promise<string | null | "stop"> {
-  const response = await fetch(instanceUrl(credentials, "getAvatar"), {
+  const response = await fetch(instanceUrl(apiAccount, "getAvatar"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chatId }),
@@ -42,17 +43,18 @@ export type ApiMessage = {
   typeMessage: string;
   textMessage?: string;
   extendedTextMessage?: { text?: string };
+  quotedMessage?: { stanzaId?: string; textMessage?: string; extendedTextMessage?: { text?: string } };
   timestamp: number;
   statusMessage?: string;
 };
 
 export async function getChatMessages(
-  credentials: Credentials,
+  apiAccount: ApiAccount,
   chatId: string,
   signal: AbortSignal,
   count = 10,
 ): Promise<ApiMessage[] | "stop"> {
-  const response = await fetch(instanceUrl(credentials, "getChatHistory"), {
+  const response = await fetch(instanceUrl(apiAccount, "getChatHistory"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chatId, count }),
@@ -66,11 +68,12 @@ export async function getChatMessages(
   return Array.isArray(messages) ? messages : [];
 }
 
-export async function sendText(credentials: Credentials, chatId: string, message: string, quotedMessageId?: string) {
-  const response = await fetch(instanceUrl(credentials, "sendMessage"), {
+export async function sendText(apiAccount: ApiAccount, chatId: string, message: string, quotedMessageId?: string, signal?: AbortSignal) {
+  const response = await fetch(instanceUrl(apiAccount, "sendMessage"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chatId, message, ...(quotedMessageId ? { quotedMessageId } : {}) }),
+    signal,
   });
 
   if (!response.ok) throw new Error(`Не удалось отправить сообщение: ошибка ${response.status}.`);
@@ -93,26 +96,34 @@ export type Notification = {
     messageData?: {
       typeMessage?: string;
       textMessageData?: { textMessage?: string };
-      extendedTextMessageData?: { text?: string };
+      extendedTextMessageData?: { text?: string; stanzaId?: string };
+      quotedMessage?: { stanzaId?: string };
     };
   };
 };
 
 export async function receiveNotification(
-  credentials: Credentials,
+  apiAccount: ApiAccount,
   signal: AbortSignal,
-): Promise<Notification | null | "stop"> {
-  const response = await fetch(`${instanceUrl(credentials, "receiveNotification")}?receiveTimeout=10`, { signal });
+): Promise<Notification | null> {
+  const response = await fetch(`${instanceUrl(apiAccount, "receiveNotification")}?receiveTimeout=10`, { signal });
 
-  if (response.status === 466) return "stop";
-  if (!response.ok) throw new Error(`Ошибка получения сообщений: ${response.status}.`);
+  if (!response.ok) {
+    if (response.status === 400) {
+      const detail = await response.text();
+      if (detail.includes("custom webhook url")) {
+        throw new Error("Получение уведомлений через HTTP API недоступно: у инстанса указан Webhook URL.");
+      }
+    }
+    throw new Error(`Ошибка получения уведомлений: ${response.status}.`);
+  }
   const text = await response.text();
 
   return text ? (JSON.parse(text) as Notification) : null;
 }
 
-export async function deleteNotification(credentials: Credentials, receiptId: number, signal: AbortSignal) {
-  const response = await fetch(`${instanceUrl(credentials, "deleteNotification")}/${receiptId}`, {
+export async function deleteNotification(apiAccount: ApiAccount, receiptId: number, signal: AbortSignal) {
+  const response = await fetch(`${instanceUrl(apiAccount, "deleteNotification")}/${receiptId}`, {
     method: "DELETE",
     signal,
   });
@@ -120,8 +131,8 @@ export async function deleteNotification(credentials: Credentials, receiptId: nu
   if (!response.ok) throw new Error(`Ошибка подтверждения сообщения: ${response.status}.`);
 }
 
-export async function readChat(credentials: Credentials, chatId: string, signal: AbortSignal): Promise<boolean> {
-  const response = await fetch(instanceUrl(credentials, "readChat"), {
+export async function readChat(apiAccount: ApiAccount, chatId: string, signal: AbortSignal): Promise<boolean> {
+  const response = await fetch(instanceUrl(apiAccount, "readChat"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chatId }),
@@ -131,4 +142,15 @@ export async function readChat(credentials: Credentials, chatId: string, signal:
   if (!response.ok) return false;
   const result = (await response.json()) as { setRead?: boolean };
   return result.setRead === true;
+}
+
+export async function checkAccount(apiAccount: ApiAccount, phoneNumber: number, signal?: AbortSignal): Promise<unknown> {
+  const response = await fetch(instanceUrl(apiAccount, "checkAccount"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phoneNumber }),
+    signal,
+  });
+  if (!response.ok) throw new Error(`Не удалось проверить номер MAX: ошибка ${response.status}.`);
+  return response.json();
 }
