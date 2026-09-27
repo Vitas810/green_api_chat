@@ -2,8 +2,9 @@
 
 Простой чат на React для отправки и получения текстовых сообщений в MAX и WhatsApp через GREEN-API.
 
-##Демо
-```https://vitas810.github.io/green_api_chat/```
+## Демо
+
+[https://vitas810.github.io/green_api_chat/](https://vitas810.github.io/green_api_chat/)
 
 ## Запуск
 
